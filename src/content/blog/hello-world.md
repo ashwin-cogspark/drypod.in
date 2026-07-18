@@ -1,5 +1,6 @@
 ---
 title: 'Hello world'
+description: 'A test post'
 pubDate: 2026-07-18
 tags: ['meta']
 ---
