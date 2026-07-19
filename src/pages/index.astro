@@ -1,49 +1,117 @@
 ---
-import BaseHead from '../components/BaseHead.astro';
-import Footer from '../components/Footer.astro';
-import Header from '../components/Header.astro';
-import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+import BaseHead from "../components/BaseHead.astro";
+import Footer from "../components/Footer.astro";
+import Header from "../components/Header.astro";
+import { SITE_DESCRIPTION, SITE_TITLE } from "../consts";
 ---
 
 <!doctype html>
 <html lang="en">
-	<head>
-		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
-	</head>
-	<body>
-		<Header />
-		<main>
-			<h1>🧑‍🚀 Hello, Astronaut!</h1>
-			<p>
-				Welcome to the official <a href="https://astro.build/">Astro</a> blog starter template. This template
-				serves as a lightweight, minimally-styled starting point for anyone looking to build a personal
-				website, blog, or portfolio with Astro.
-			</p>
-			<p>
-				This template comes with a few integrations already configured in your
-				<code>astro.config.mjs</code> file. You can customize your setup with
-				<a href="https://astro.build/integrations">Astro Integrations</a> to add tools like Tailwind,
-				React, or Vue to your project.
-			</p>
-			<p>Here are a few ideas on how to get started with the template:</p>
-			<ul>
-				<li>Edit this page in <code>src/pages/index.astro</code></li>
-				<li>Edit the site header items in <code>src/components/Header.astro</code></li>
-				<li>Add your name to the footer in <code>src/components/Footer.astro</code></li>
-				<li>Check out the included blog posts in <code>src/content/blog/</code></li>
-				<li>Customize the blog post page layout in <code>src/layouts/BlogPost.astro</code></li>
-			</ul>
-			<p>
-				Have fun! If you get stuck, remember to
-				<a href="https://docs.astro.build/">read the docs</a>
-				or <a href="https://astro.build/chat">join us on Discord</a> to ask questions.
-			</p>
-			<p>
-				Looking for a blog template with a bit more personality? Check out
-				<a href="https://github.com/Charca/astro-blog-template">astro-blog-template</a>
-				by <a href="https://twitter.com/Charca">Maxi Ferreira</a>.
-			</p>
-		</main>
-		<Footer />
-	</body>
+    <head>
+        <BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+    </head>
+    <body>
+        <Header />
+        <main>
+            <section class="intro">
+                <h1>Hey, I'm Drypod.</h1>
+                <p class="lede">
+                    I write about whatever's eating my brain this week.
+                </p>
+                <p>
+                    Some weeks that's AI tooling and how I'm actually using LLMs
+                    in my day job. Other weeks it's a geopolitics spiral, a
+                    fitness reality check, a finance decision I'm
+                    stress-testing, or a 2 AM rant about whatever anime, movie,
+                    or strategy game I just lost a weekend to. There is no
+                    niche. There is no content calendar. This is a vent space
+                    that happens to be public.
+                </p>
+            </section>
+
+            <section class="topics">
+                <h2>What you'll find here</h2>
+                <ul>
+                    <li>
+                        <strong>AI &amp; tooling</strong> &mdash; workflows, not hype.
+                        What I tried, what broke, what stuck.
+                    </li>
+                    <li>
+                        <strong>Geopolitics &amp; current affairs</strong> &mdash;
+                        conflicts, elections, market shocks, told straight.
+                    </li>
+                    <li>
+                        <strong>Finance &amp; investing</strong> &mdash; portfolio
+                        decisions, budgeting experiments, mistakes logged honestly.
+                    </li>
+                    <li>
+                        <strong>Self-improvement</strong> &mdash; Kaizen, Shukan,
+                        streaks, and the unglamorous parts nobody posts about.
+                    </li>
+                    <li>
+                        <strong>Gaming, anime, fiction</strong> &mdash; strategy games,
+                        the novels I'm reading/writing, the shows worth your time.
+                    </li>
+                </ul>
+            </section>
+
+            <section class="how-it-works">
+                <h2>How this blog works</h2>
+                <p>
+                    I'd rather post one honest, useful thing a month than ten
+                    polished nothing-posts a week. If a topic interests you,
+                    follow that tag. If a post helps you, annoys you, or makes
+                    you think &mdash; that's the whole point.
+                </p>
+                <p>
+                    New posts land when they're ready. No newsletter spam, no
+                    popups, no tracking beyond what the hosting provider counts.
+                </p>
+                <p>
+                    &#128073; Start with <a href="/about">About</a> if you want to
+                    know who's behind this, or jump into the <a href="/blog"
+                        >latest posts</a
+                    >.
+                </p>
+            </section>
+        </main>
+        <Footer />
+    </body>
 </html>
+
+<style>
+    main {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 2em 1em 4em;
+        color: rgb(var(--gray-dark));
+        line-height: 1.6;
+    }
+    .intro h1 {
+        margin-bottom: 0.25em;
+    }
+    .lede {
+        font-size: 1.2em;
+        margin-top: 0;
+        color: rgb(var(--gray-dark));
+    }
+    section {
+        margin-bottom: 2em;
+    }
+    h2 {
+        margin-bottom: 0.5em;
+    }
+    ul {
+        padding-left: 1.25em;
+    }
+    li {
+        margin-bottom: 0.5em;
+    }
+    a {
+        color: var(--accent);
+        text-decoration: none;
+    }
+    a:hover {
+        text-decoration: underline;
+    }
+</style>
