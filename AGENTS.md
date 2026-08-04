@@ -29,7 +29,7 @@ This repository is mirrored to a self-hosted backup server (frodo). After every 
 ### Remotes
 | Name | URL | Role |
 |------|-----|------|
-| `origin` | https://github.com/ashwin-cogspark/drypod.in.git | Primary remote (GitHub / upstream) |
+| `origin` | git@github.com:ashwin-cogspark/drypod.in.git | Primary remote (GitHub / upstream, SSH) |
 | `backup` | frodo:~/git-repos/drypod.in.git | Self-hosted mirror (frodo) |
 
 ### Push Protocol
@@ -44,11 +44,16 @@ git push backup <branch>
 ```
 
 ### Convenience Alias
-Configure a per-repo git alias so `git pushall` pushes to both:
+Already configured in this repo (`.git/config`) so `git pushall` pushes to both:
+
+```bash
+# Usage: git pushall
+```
+
+To (re)create it manually:
 
 ```bash
 git config alias.pushall '!git push origin && git push backup'
-# Usage: git pushall
 ```
 
 Or add to your shell profile (`~/.bashrc`):
