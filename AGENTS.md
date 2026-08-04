@@ -20,3 +20,40 @@ Consult these guides before working on related tasks:
 - [Adding or managing content](https://docs.astro.build/en/guides/content-collections/)
 - [Adding styles or using Tailwind](https://docs.astro.build/en/guides/styling/)
 - [Supporting multiple languages](https://docs.astro.build/en/guides/internationalization/)
+
+
+## Git Backup Policy
+
+This repository is mirrored to a self-hosted backup server (frodo). After every push to the primary remote, also push to the backup remote to keep the mirror in sync.
+
+### Remotes
+| Name | URL | Role |
+|------|-----|------|
+| `origin` | https://github.com/ashwin-cogspark/drypod.in.git | Primary remote (GitHub / upstream) |
+| `backup` | frodo:~/git-repos/drypod.in.git | Self-hosted mirror (frodo) |
+
+### Push Protocol
+Always push to both remotes after committing:
+
+```bash
+# Push to primary remote
+git push origin <branch>
+
+# Then push to backup mirror
+git push backup <branch>
+```
+
+### Convenience Alias
+Configure a per-repo git alias so `git pushall` pushes to both:
+
+```bash
+git config alias.pushall '!git push origin && git push backup'
+# Usage: git pushall
+```
+
+Or add to your shell profile (`~/.bashrc`):
+
+```bash
+alias gpush='git push origin && git push backup'
+```
+

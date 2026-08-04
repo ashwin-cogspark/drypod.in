@@ -1,63 +1,69 @@
-# Astro Starter Kit: Blog
+# drypod.in
+
+Personal blog. Live at [drypod.in](https://drypod.in).
+
+## Stack
+
+- **Astro** 7 — static site generator, Markdown posts
+- **Cloudflare Workers** — hosting (via GitHub integration on push to `main`)
+- **Cloudflare Web Analytics** — privacy-friendly, cookieless, auto-injected via orange-cloud proxy
+- Zero ongoing cost (domain renewal only)
+
+## Add a post
+
+Drop a Markdown file in `src/content/blog/` with this frontmatter:
+
+```yaml
+---
+title: 'Post title'
+description: 'One-line description for SEO/RSS'
+pubDate: YYYY-MM-DD
+tags: ['tag1', 'tag2']
+---
+```
+
+Filename becomes the URL slug (e.g. `hello-world.md` → `/blog/hello-world/`).
+
+## Local dev
 
 ```sh
-npm create astro@latest -- --template blog
+npm install
+npm run dev        # http://localhost:4321
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## Deploy
 
-Features:
+Push to `main`. Cloudflare rebuilds and deploys via Workers Builds (~60s).
 
-- ✅ Minimal styling (make it your own!)
-- ✅ 100/100 Lighthouse performance
-- ✅ SEO-friendly with canonical URLs and Open Graph data
-- ✅ Sitemap support
-- ✅ RSS Feed support
-- ✅ Markdown & MDX support
+Manual one-off deploy (if needed):
 
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-├── public/
-├── src/
-│   ├── assets/
-│   ├── components/
-│   ├── content/
-│   ├── layouts/
-│   └── pages/
-├── astro.config.mjs
-├── README.md
-├── package.json
-└── tsconfig.json
+```sh
+npm run build
+npx wrangler deploy
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+`wrangler.jsonc` at repo root tells Wrangler to serve `./dist` as static assets for the `drypod-in` Worker.
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+## Project structure
 
-The `src/content/` directory contains "collections" of related Markdown and MDX documents. Use `getCollection()` to retrieve posts from `src/content/blog/`, and type-check your frontmatter using an optional schema. See [Astro's Content Collections docs](https://docs.astro.build/en/guides/content-collections/) to learn more.
+```
+src/
+├── assets/        # fonts, images
+├── components/    # Header, Footer, BaseHead, etc.
+├── content/blog/  # posts (one .md per post)
+├── layouts/       # BlogPost.astro (post page wrapper)
+├── pages/         # index.astro (home), about.astro, blog/index.astro, rss.xml.js
+├── styles/        # global.css
+└── consts.ts      # SITE_TITLE, SITE_DESCRIPTION
+```
 
-Any static assets, like images, can be placed in the `public/` directory.
+## Notes
 
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Check out [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+- **Cloudflare Pages vs Workers**: Cloudflare unified Pages into Workers in 2026. This project deploys as a Worker with static assets, not a legacy Pages project. The `wrangler.jsonc` with `assets.directory` is what makes Wrangler treat it as a static site.
+- **Comments**: not wired up. Revisit (Disqus vs self-hosted Remark42) when real traffic justifies it.
+- **Newsletter**: not planned. Blog-only.
+- **Monetization**: possible later (AdSense, Amazon Associates India, AI-tool affiliates) without re-platforming.
 
 ## Credit
 
-This theme is based off of the lovely [Bear Blog](https://github.com/HermanMartinus/bearblog/).
+Built on the [Astro Blog starter kit](https://astro.build/themes/details/blog/), itself based on [Bear Blog](https://github.com/HermanMartinus/bearblog/).
