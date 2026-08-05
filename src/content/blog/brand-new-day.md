@@ -2,7 +2,7 @@
 title: 'Brand New Day'
 description: 'All for a better future.'
 pubDate: 2026-08-04
-tags: ['journal', 'showing-up']
+tags: ['meta']
 ---
 
 Today, I'm taking a pivot. 
