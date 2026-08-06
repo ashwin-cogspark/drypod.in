@@ -1,7 +1,7 @@
 ---
 title: 'A New Manga'
 description: 'A new manga added to my growing manga list.'
-pubDate: 2026-07-18
+pubDate: 2026-08-05
 tags: ['manga']
 ---
 
