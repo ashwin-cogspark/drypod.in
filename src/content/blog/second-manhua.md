@@ -1,6 +1,6 @@
 ---
 title: 'Second Manhua'
-description: 'Started reading a new manhua and book.'
+description: 'Completed a manhua and started reading a new manhua and resumed 3D printing.'
 pubDate: 2026-08-08
 tags: ['manga', '3d-printing']
 ---
