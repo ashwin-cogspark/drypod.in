@@ -1,7 +1,7 @@
 ---
 title: 'Night Stay with Friends'
 description: 'After a long time.'
-pubDate: 2026-08-16
+pubDate: 2026-08-18
 tags: ['meta']
 ---
 
@@ -14,3 +14,5 @@ As they got married one by one, our meetups became less frequent. At least we si
 They had to take up new responsibilities as husbands and fathers (two of them became fathers).
 
 See ya!
+
+*This post is for 16-Aug but written later.*

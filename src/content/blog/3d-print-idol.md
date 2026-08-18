@@ -1,7 +1,7 @@
 ---
 title: '3D Print Idol'
 description: 'A Lord Murugan idol for my mom.'
-pubDate: 2026-08-15
+pubDate: 2026-08-18
 tags: ['3d-printing']
 ---
 
@@ -13,3 +13,5 @@ I searched MakerWorld for a suitable model and started the prints.
 The print will be ready by late evening, but I won't be able to check it today as I'm going to a birthday party. 
 
 See ya!
+
+*This post is for 15-Aug but written later.*
