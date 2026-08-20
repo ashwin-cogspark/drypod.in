@@ -9,7 +9,7 @@ I tried fasting today. Not the typical kind.
 
 I had all kinds of liquids that I normally consume such as tea and coffee, along with fresh fruit. I just kept away from normal meals throughout the day. 
 
-The day started with a glass of water followed by my morning filter coffee. For breakfast, I had a couple of bed bananas. Dinner was the same as breakfast (although my mom asked if I wanted to have dosa).
+The day started with a glass of water followed by my morning filter coffee. For breakfast, I had a couple of red bananas. Dinner was the same as breakfast (although my mom asked if I wanted to have dosa).
 
 Oh yeah! I did have a double omelette for lunch.
 
