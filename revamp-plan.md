@@ -142,14 +142,14 @@
 
 ## Phase 4 — Vote worker (1 evening)
 
-- [ ] P4.1 Vote handler: `GET /api/votes/:id` → `{up,down}`; `POST` with `{direction}` + Turnstile token → verify → dedup (IP hash + id, KV TTL 10y) → increment.
-- [ ] P4.2 KV namespace `VOTES`; single JSON per id (Durable Object later if races matter).
-- [ ] P4.3 Route `drypod.in/api/votes/*` on the existing zone.
-- [ ] P4.4 Turnstile widget (invisible/managed) + secret via `wrangler secret`.
-- [ ] P4.5 Astro `VoteIsland`: hydrate, optimistic toggle, localStorage flag, hide counts < 10 (Q8).
-- [ ] P4.6 CF WAF rate-limit rule on `/api/votes/*` (10 req/min/IP).
-- [ ] P4.7 `GET /api/votes/bulk?ids=` for nightly feedback sync.
-- [ ] P4.8 Agent-vote branch stub (`X-Agent-Token`) — documented, disabled in v1.
+- [x] P4.1 Vote handler: `GET /api/votes/:id` → `{up,down}`; `POST` with `{direction}` + Turnstile token → verify → dedup (IP hash + id, KV TTL 10y) → increment.
+- [x] P4.2 KV namespace `VOTES`; single JSON per id (Durable Object later if races matter). *(binding wired; namespace id is a placeholder until user runs `wrangler kv namespace create VOTES`)*
+- [x] P4.3 Route `drypod.in/api/votes/*` on the existing zone. *(worker serves /api/* via `run_worker_first`; live once deployed)*
+- [x] P4.4 Turnstile widget (invisible/managed) + secret via `wrangler secret`. *(code + test keys active in dev; real sitekey/secret = user action before production)*
+- [x] P4.5 Astro `VoteIsland`: hydrate, optimistic toggle, localStorage flag, hide counts < 10 (Q8).
+- [ ] P4.6 CF WAF rate-limit rule on `/api/votes/*` (10 req/min/IP). *(dashboard action — user)*
+- [x] P4.7 `GET /api/votes/bulk?ids=` for nightly feedback sync.
+- [x] P4.8 Agent-vote branch stub (`X-Agent-Token`) — documented, disabled in v1. *(501 + docs)*
 
 ## Phase 5 — Factory scaffold + BBS migration (1–2 evenings)
 

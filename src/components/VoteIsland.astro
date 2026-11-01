@@ -1,8 +1,9 @@
 ---
 /**
- * Stub vote island — renders a neutral, disabled placeholder so novel and
- * reader pages work today. Phase 4 replaces the internals (Turnstile-gated
- * voting + dedup); keep the `Props` interface stable: `id` is the vote
+ * VoteIsland — Turnstile-gated 👍/👎 voting for novels and chapters (plan P4.5).
+ *
+ * Server-renders a neutral disabled state; an inline script upgrades it once
+ * the vote API answers. Keep the `Props` interface stable: `id` is the vote
  * subject, e.g. `novel:test-serial` or `chapter:test-serial:001`.
  */
 interface Props {
@@ -10,45 +11,305 @@ interface Props {
 }
 
 const { id } = Astro.props;
+// TODO: set PUBLIC_TURNSTILE_SITE_KEY to the real sitekey (Cloudflare dashboard)
+// — the fallback is Turnstile's public always-pass test key for local dev.
+const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? '1x00000000000000000000AA';
 ---
 
-<aside class="vote-island" data-vote-island={id} aria-label="Reader votes">
-	<span class="count" aria-hidden="true">&mdash;</span>
-	<button type="button" class="vote-button" disabled>Vote</button>
-	<p class="note">Voting opens soon.</p>
+<aside class="vote-island" data-vote-island={id} data-sitekey={siteKey} aria-label="Reader votes">
+	<div class="vote-actions" role="group" aria-label="Rate this">
+		<button type="button" class="vote-btn" data-vote-dir="up" aria-pressed="false" disabled>
+			<span aria-hidden="true">👍</span> <span class="vote-label">Up</span>
+		</button>
+		<button type="button" class="vote-btn" data-vote-dir="down" aria-pressed="false" disabled>
+			<span aria-hidden="true">👎</span> <span class="vote-label">Down</span>
+		</button>
+	</div>
+	<p class="vote-status">
+		<span class="vote-status-text" role="status" data-vote-status>Voting unavailable.</span>
+		<span class="vote-counts" data-vote-counts hidden></span>
+	</p>
+	<div class="vote-turnstile" data-vote-turnstile hidden></div>
 </aside>
 
 <style>
 	.vote-island {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
-		gap: 0.75em;
+		gap: 0.5em 1em;
 		padding: 0.75em 1em;
-		border: 1px dashed rgb(var(--gray-light));
+		border: 1px solid rgb(var(--gray-light));
 		border-radius: 8px;
 		color: rgb(var(--gray));
 		background: var(--surface);
+		margin: 2em 0;
 	}
-	.count {
-		font-size: 1.2em;
-		font-weight: 700;
-		color: rgb(var(--gray-dark));
-		min-width: 2ch;
-		text-align: center;
+	.vote-actions {
+		display: flex;
+		gap: 0.5em;
 	}
-	.vote-button {
-		font-size: 0.9em;
+	.vote-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35em;
+		font-size: 0.85em;
 		font-weight: 700;
-		padding: 0.4em 1.2em;
+		padding: 0.4em 1.1em;
 		border-radius: 999px;
 		border: 1px solid rgb(var(--gray-light));
 		background: transparent;
-		color: rgb(var(--gray));
-		cursor: not-allowed;
+		color: rgb(var(--gray-dark));
+		cursor: pointer;
 	}
-	.note {
+	.vote-btn:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+	.vote-btn:disabled {
+		cursor: not-allowed;
+		opacity: 0.6;
+	}
+	.vote-btn[aria-pressed='true'] {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+	.vote-status {
 		margin: 0;
 		font-size: 0.8em;
+		display: inline-flex;
+		flex-wrap: wrap;
+		gap: 0.25em 0.75em;
+		align-items: baseline;
+	}
+	.vote-counts {
+		color: rgb(var(--gray-dark));
+	}
+	.vote-counts.vote-hint {
 		color: rgb(var(--gray));
+		font-style: italic;
+	}
+	.vote-turnstile {
+		flex-basis: 100%;
+		min-height: 65px; /* reserve space so the widget doesn't shift layout */
+	}
+	.vote-turnstile[hidden] {
+		display: none;
 	}
 </style>
+
+<script is:inline>
+	(() => {
+		'use strict';
+
+		const MIN_PUBLIC_VOTES = 10; // hide counts below this (plan Q8)
+
+		const islands = document.querySelectorAll('[data-vote-island]');
+		if (!islands.length) return;
+
+		/** Load Turnstile api.js once; queue renderers until it's ready. */
+		function loadTurnstileApi(cb) {
+			if (window.turnstile) {
+				cb();
+				return;
+			}
+			const queue = (window.__voteTsQueue = window.__voteTsQueue || []);
+			queue.push(cb);
+			if (!document.querySelector('script[data-vote-turnstile-api]')) {
+				window.__voteTsFlush = () => {
+					const pending = window.__voteTsQueue || [];
+					window.__voteTsQueue = [];
+					for (const fn of pending) {
+						try {
+							fn();
+						} catch {
+							/* one widget failing to mount must not block others */
+						}
+					}
+				};
+				const s = document.createElement('script');
+				s.src =
+					'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=__voteTsFlush&render=explicit';
+				s.async = true;
+				s.defer = true;
+				s.setAttribute('data-vote-turnstile-api', '');
+				document.head.appendChild(s);
+			}
+		}
+
+		function boot(root) {
+			const id = root.getAttribute('data-vote-island');
+			const siteKey = root.getAttribute('data-sitekey');
+			const btns = {
+				up: root.querySelector('[data-vote-dir="up"]'),
+				down: root.querySelector('[data-vote-dir="down"]'),
+			};
+			const statusEl = root.querySelector('[data-vote-status]');
+			const countsEl = root.querySelector('[data-vote-counts]');
+			const tsSlot = root.querySelector('[data-vote-turnstile]');
+			const lsKey = 'voted:' + id;
+			let widgetId = null;
+			let voted = null;
+			let busy = false;
+
+			try {
+				voted = localStorage.getItem(lsKey);
+			} catch {
+				/* private mode / storage disabled — vote without persistence */
+			}
+
+			const say = (text) => {
+				statusEl.textContent = text;
+			};
+
+			const setPressed = (dir) => {
+				for (const d of ['up', 'down']) {
+					btns[d].setAttribute('aria-pressed', String(dir === d));
+				}
+			};
+
+			const renderCounts = (t) => {
+				if (!t) return;
+				countsEl.hidden = false;
+				if (t.up + t.down >= MIN_PUBLIC_VOTES) {
+					countsEl.classList.remove('vote-hint');
+					countsEl.textContent = '\u{1F44D} ' + t.up + ' \u00B7 \u{1F44E} ' + t.down;
+				} else {
+					countsEl.classList.add('vote-hint');
+					countsEl.textContent = 'under ' + MIN_PUBLIC_VOTES + ' votes so far';
+				}
+			};
+
+			const markVoted = (dir) => {
+				voted = dir;
+				try {
+					localStorage.setItem(lsKey, dir);
+				} catch {
+					/* non-fatal: server-side dedup still applies */
+				}
+				setPressed(dir);
+				btns.up.disabled = true;
+				btns.down.disabled = true;
+				say('You voted ' + (dir === 'up' ? '\u{1F44D}' : '\u{1F44E}') + ' \u2014 thanks.');
+				if (widgetId !== null && window.turnstile) {
+					try {
+						window.turnstile.remove(widgetId);
+					} catch {
+						/* already gone */
+					}
+					widgetId = null;
+					tsSlot.hidden = true;
+				}
+			};
+
+			const revert = () => {
+				voted = null;
+				busy = false;
+				setPressed(null);
+				btns.up.disabled = false;
+				btns.down.disabled = false;
+				if (widgetId !== null && window.turnstile) {
+					try {
+						window.turnstile.reset(widgetId); // tokens are single-use
+					} catch {
+						/* already gone */
+					}
+				}
+			};
+
+			const renderTurnstile = () => {
+				loadTurnstileApi(() => {
+					if (widgetId !== null || voted) return;
+					tsSlot.hidden = false;
+					try {
+						widgetId = window.turnstile.render(tsSlot, {
+							sitekey: siteKey,
+							theme: 'auto',
+						});
+					} catch {
+						/* widget unavailable; server still gates the vote */
+					}
+				});
+			};
+
+			const onVote = (dir) => {
+				if (voted || busy || btns[dir].disabled) return;
+				busy = true;
+				// Optimistic lock-in: the vote is decided on click.
+				setPressed(dir);
+				btns.up.disabled = true;
+				btns.down.disabled = true;
+				say('Counting your vote\u2026');
+
+				const token =
+					widgetId !== null && window.turnstile
+						? window.turnstile.getResponse(widgetId) || ''
+						: '';
+
+				fetch('/api/votes/' + encodeURIComponent(id), {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ direction: dir, turnstileToken: token }),
+				})
+					.then(async (res) => {
+						if (res.status === 200 || res.status === 409) {
+							// 409: server dedup says already voted — local state wins.
+							markVoted(dir);
+							busy = false;
+							if (res.status === 200) {
+								try {
+									renderCounts(await res.json());
+								} catch {
+									/* counts are cosmetic */
+								}
+							}
+							return;
+						}
+						revert();
+						if (res.status === 403) {
+							say('Complete the human check, then try again.');
+						} else {
+							say('Vote failed \u2014 try again.');
+						}
+					})
+					.catch(() => {
+						revert();
+						say('Voting unavailable right now.');
+					});
+			};
+
+			btns.up.addEventListener('click', () => onVote('up'));
+			btns.down.addEventListener('click', () => onVote('down'));
+
+			// Initial state: fetch counts; on any failure stay quiet and disabled
+			// (e.g. plain `astro preview` has no worker to answer /api/*).
+			fetch('/api/votes/' + encodeURIComponent(id), {
+				headers: { Accept: 'application/json' },
+			})
+				.then(async (res) => {
+					if (!res.ok) throw new Error('http ' + res.status);
+					return res.json();
+				})
+				.then((t) => {
+					renderCounts(t);
+					if (voted) {
+						markVoted(voted);
+						return;
+					}
+					btns.up.disabled = false;
+					btns.down.disabled = false;
+					say('Rate this:');
+					renderTurnstile();
+				})
+				.catch(() => {
+					if (voted) {
+						markVoted(voted);
+					} else {
+						say('Voting unavailable right now.');
+					}
+				});
+		}
+
+		for (const island of islands) boot(island);
+	})();
+</script>

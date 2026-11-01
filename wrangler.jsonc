@@ -1,7 +1,22 @@
 {
-  "name": "drypod-in",
-  "compatibility_date": "2026-07-18",
-  "assets": {
-    "directory": "./dist"
-  }
+	"name": "drypod-in",
+	"compatibility_date": "2026-07-18",
+	// One Worker serves both static assets and the vote API:
+	// /api/* hits the Worker first; everything else serves straight from dist/.
+	"main": "worker/index.js",
+	"assets": {
+		"directory": "./dist",
+		"binding": "ASSETS",
+		"run_worker_first": ["/api/*"]
+	},
+	"kv_namespaces": [
+		{
+			"binding": "VOTES",
+			// TODO(user): create the namespace and replace this id —
+			//   npx wrangler kv namespace create VOTES
+			// Deploys are blocked until a real id is pasted here; local
+			// `wrangler dev` works regardless (miniflare simulates KV).
+			"id": "REPLACE_AFTER_wrangler_kv_namespace_create"
+		}
+	]
 }
