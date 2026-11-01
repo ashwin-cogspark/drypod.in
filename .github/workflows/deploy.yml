@@ -51,14 +51,25 @@ jobs:
           cache: npm
 
       - run: npm ci
+      - name: Check Turnstile sitekey presence
+        run: |
+          if [ -z "$PUBLIC_TURNSTILE_SITE_KEY" ]; then
+            echo "::warning::PUBLIC_TURNSTILE_SITE_KEY not set (repo variable or secret) — build falls back to the Turnstile TEST sitekey; votes will 403 against the production TURNSTILE_SECRET."
+          else
+            echo "Turnstile sitekey present (${#PUBLIC_TURNSTILE_SITE_KEY} chars)."
+          fi
+        env:
+          PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.PUBLIC_TURNSTILE_SITE_KEY || secrets.PUBLIC_TURNSTILE_SITE_KEY }}
       - run: npm run lint:content
       - run: npm run test:content
       - run: npm run test:worker
       - name: Build
         env:
-          # Empty until the variable exists — the island then falls back to
-          # the public Turnstile TEST sitekey.
-          PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.PUBLIC_TURNSTILE_SITE_KEY }}
+          # Accept the sitekey from either the Variables or the Secrets tab;
+          # empty only when it exists in neither — the island then falls
+          # back to the public Turnstile TEST sitekey (30x-fails against the
+          # real TURNSTILE_SECRET, so production needs this set).
+          PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.PUBLIC_TURNSTILE_SITE_KEY || secrets.PUBLIC_TURNSTILE_SITE_KEY }}
         run: npm run build
 
       - name: Upload preview version (wrangler)
@@ -122,14 +133,25 @@ jobs:
           cache: npm
 
       - run: npm ci
+      - name: Check Turnstile sitekey presence
+        run: |
+          if [ -z "$PUBLIC_TURNSTILE_SITE_KEY" ]; then
+            echo "::warning::PUBLIC_TURNSTILE_SITE_KEY not set (repo variable or secret) — build falls back to the Turnstile TEST sitekey; votes will 403 against the production TURNSTILE_SECRET."
+          else
+            echo "Turnstile sitekey present (${#PUBLIC_TURNSTILE_SITE_KEY} chars)."
+          fi
+        env:
+          PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.PUBLIC_TURNSTILE_SITE_KEY || secrets.PUBLIC_TURNSTILE_SITE_KEY }}
       - run: npm run lint:content
       - run: npm run test:content
       - run: npm run test:worker
       - name: Build
         env:
-          # Empty until the variable exists — the island then falls back to
-          # the public Turnstile TEST sitekey.
-          PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.PUBLIC_TURNSTILE_SITE_KEY }}
+          # Accept the sitekey from either the Variables or the Secrets tab;
+          # empty only when it exists in neither — the island then falls
+          # back to the public Turnstile TEST sitekey (30x-fails against the
+          # real TURNSTILE_SECRET, so production needs this set).
+          PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.PUBLIC_TURNSTILE_SITE_KEY || secrets.PUBLIC_TURNSTILE_SITE_KEY }}
         run: npm run build
 
       - name: Deploy to production (wrangler)
