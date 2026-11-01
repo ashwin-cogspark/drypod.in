@@ -133,12 +133,12 @@
 
 ## Phase 3 — Site: CI/CD (1 evening)
 
-- [ ] P3.1 `.github/workflows/deploy.yml`: on PR → `setup-node 22` → `npm ci` → `astro build` → `wrangler versions upload` → comment preview URL on PR (REST).
-- [ ] P3.2 On push to `main` → same build → `wrangler deploy`.
-- [ ] P3.3 `CLOUDFLARE_API_TOKEN` repo secret (least-privilege: Workers scripts edit).
-- [ ] P3.4 Commit `wrangler.jsonc` (contains no secrets — verify contents once, then track it).
-- [ ] P3.5 CI content lint beyond zod: reject `wordCount < 800` or missing provenance (small node script).
-- [ ] P3.6 Full-path test: branch → PR → preview renders → merge → live.
+- [x] P3.1 `.github/workflows/deploy.yml`: on PR → `setup-node 22` → `npm ci` → `astro build` → `wrangler versions upload` → comment preview URL on PR (REST). *(standing comment, edited in place; lint+test gates included)*
+- [x] P3.2 On push to `main` → same build → `wrangler deploy`.
+- [ ] P3.3 `CLOUDFLARE_API_TOKEN` repo secret (least-privilege: Workers scripts edit). *(user action — workflow also needs `CLOUDFLARE_ACCOUNT_ID`; every wrangler step fails until both exist)*
+- [x] P3.4 Commit `wrangler.jsonc` (contains no secrets — verify contents once, then track it). *(verified: name/main/assets/KV binding with placeholder id only)*
+- [x] P3.5 CI content lint beyond zod: reject `wordCount < 800` or missing provenance (small node script). *(+ honesty drift >10%, novel-ref existence, dupes, padding, pubDate — 15 tests)*
+- [ ] P3.6 Full-path test: branch → PR → preview renders → merge → live. *(blocked until P3.3 secrets added)*
 
 ## Phase 4 — Vote worker (1 evening)
 

@@ -1,0 +1,120 @@
+# CI/CD for drypod.in (revamp plan P3.1–P3.3).
+#
+# Triggers:
+#   - pull_request -> main: content lint + content tests + build, then
+#     `wrangler versions upload` (a non-production preview version) and a
+#     standing comment on the PR with the preview URL.
+#   - push -> main: the same checks, then `wrangler deploy` (production).
+#
+# Required repository secrets (Settings -> Secrets and variables -> Actions):
+#   - CLOUDFLARE_API_TOKEN  — least-privilege Cloudflare API token created from
+#     the "Workers Scripts Edit" template (edit is enough; no admin scopes).
+#   - CLOUDFLARE_ACCOUNT_ID — the Cloudflare account id (Workers dashboard).
+#
+# NOTE (plan P3.3 — manual user step): until both secrets are added, every
+# wrangler step fails with an auth error. The lint/test/build steps before it
+# still run and validate the PR.
+
+name: Deploy
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Superseded runs on the same branch cancel each other out.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  preview:
+    name: Preview (PR)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint:content
+      - run: npm run test:content
+      - run: npm run build
+
+      - name: Upload preview version (wrangler)
+        id: wrangler_preview
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          npx --yes wrangler@4 versions upload 2>&1 | tee wrangler-output.log
+          url="$(grep -Eo 'https://[a-zA-Z0-9-]+\.drypod-in\.[a-zA-Z0-9-]+\.workers\.dev' wrangler-output.log | head -n 1)"
+          if [ -z "$url" ]; then
+            echo "::error::No preview URL found in wrangler output:"
+            cat wrangler-output.log
+            exit 1
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Comment preview URL on the PR
+        env:
+          PREVIEW_URL: ${{ steps.wrangler_preview.outputs.url }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- deploy-preview -->';
+            const body = `${marker}\nCloudflare preview deployment for this PR: ${process.env.PREVIEW_URL}`;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const standing = comments.find((c) => c.body.includes(marker));
+            if (standing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: standing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  deploy:
+    name: Deploy (production)
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint:content
+      - run: npm run test:content
+      - run: npm run build
+
+      - name: Deploy to production (wrangler)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4 deploy
