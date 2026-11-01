@@ -12,11 +12,7 @@
 	"kv_namespaces": [
 		{
 			"binding": "VOTES",
-			// TODO(user): create the namespace and replace this id —
-			//   npx wrangler kv namespace create VOTES
-			// Deploys are blocked until a real id is pasted here; local
-			// `wrangler dev` works regardless (miniflare simulates KV).
-			"id": "REPLACE_AFTER_wrangler_kv_namespace_create"
+			"id": "263ec0d353354726b0a1a9e4ab82860d"
 		}
 	]
 }

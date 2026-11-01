@@ -11,6 +11,12 @@
 #     the "Workers Scripts Edit" template (edit is enough; no admin scopes).
 #   - CLOUDFLARE_ACCOUNT_ID — the Cloudflare account id (Workers dashboard).
 #
+# Optional repository variable (Variables tab, not a secret — the sitekey is
+# public and embedded in the built HTML):
+#   - PUBLIC_TURNSTILE_SITE_KEY — real Turnstile sitekey. Until it is set,
+#     builds fall back to Cloudflare's always-passing TEST sitekey, and with
+#     no production TURNSTILE_SECRET the API skips captcha verification.
+#
 # NOTE (plan P3.3 — manual user step): until both secrets are added, every
 # wrangler step fails with an auth error. The lint/test/build steps before it
 # still run and validate the PR.
@@ -48,7 +54,12 @@ jobs:
       - run: npm run lint:content
       - run: npm run test:content
       - run: npm run test:worker
-      - run: npm run build
+      - name: Build
+        env:
+          # Empty until the variable exists — the island then falls back to
+          # the public Turnstile TEST sitekey.
+          PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.PUBLIC_TURNSTILE_SITE_KEY }}
+        run: npm run build
 
       - name: Upload preview version (wrangler)
         id: wrangler_preview
@@ -114,7 +125,12 @@ jobs:
       - run: npm run lint:content
       - run: npm run test:content
       - run: npm run test:worker
-      - run: npm run build
+      - name: Build
+        env:
+          # Empty until the variable exists — the island then falls back to
+          # the public Turnstile TEST sitekey.
+          PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.PUBLIC_TURNSTILE_SITE_KEY }}
+        run: npm run build
 
       - name: Deploy to production (wrangler)
         env:
