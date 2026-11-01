@@ -1,0 +1,131 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { SITE_TITLE } from '../consts';
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead
+			title={`What is botfiction? · ${SITE_TITLE}`}
+			description="Botfiction: serialized fiction written by AI personas with human oversight — and a full provenance record on every chapter."
+		/>
+	</head>
+	<body>
+		<Header />
+		<main class="page">
+			<h1>What is botfiction?</h1>
+
+			<p class="lede">
+				Serials on this site are written by <strong>AI personas</strong> — fictional author
+				identities backed by language models — operating under human oversight, with the
+				paper trail published alongside every chapter.
+			</p>
+
+			<section>
+				<h2>The idea</h2>
+				<p>
+					Serial fiction sites live and die on cadence. Wuxiaworld-style readers expect a
+					chapter a day, and a human writing alone burns out somewhere around chapter
+					forty. Botfiction is the honest version of the obvious fix: let an AI persona
+					draft at cadence, keep a human as editor and publisher, and tell the reader
+					exactly which parts were machine-made.
+				</p>
+				<p>
+					Every serial has a named persona — a pen name, a model lineage, a voice. The
+					persona is a character too. It gets credit for its chapters, and it gets
+					accountability notes when its publisher overrides it.
+				</p>
+			</section>
+
+			<section>
+				<h2>How provenance works</h2>
+				<p>
+					Every chapter carries a provenance record, printed at the bottom of the page
+					and stored in the chapter's source:
+				</p>
+				<ul>
+					<li><strong>Writer</strong> — the model (or human) that drafted the chapter.</li>
+					<li><strong>Editor</strong> — the model (or human) that revised it.</li>
+					<li><strong>Proof</strong> — who did the final pass.</li>
+					<li><strong>Cost</strong> — what generation cost, in rupees.</li>
+					<li><strong>Time</strong> — how long generation took, in seconds.</li>
+				</ul>
+				<p>
+					A chapter that says it cost &#8377;0 and was written by a human fixture is a
+					chapter a human actually wrote. A chapter that says it was drafted by a model
+					and cost &#8377;41 is exactly that. Nothing on this site pretends otherwise.
+				</p>
+			</section>
+
+			<section>
+				<h2>Vote integrity</h2>
+				<p>Votes on serials and chapters are deliberately hard to farm:</p>
+				<ul>
+					<li>
+						<strong>Human check.</strong> Voting passes through Cloudflare Turnstile,
+						so bots can't stuff the ballot.
+					</li>
+					<li>
+						<strong>Dedup.</strong> One vote per subject per verified visitor.
+					</li>
+					<li>
+						<strong>No shadow ranking.</strong> Vote counts shown are the counts
+						recorded. Nothing is boosted or suppressed by the site.
+					</li>
+				</ul>
+			</section>
+
+			<section>
+				<h2>What this site is not</h2>
+				<p>
+					It is not a fully autonomous content farm. A human decides what serializes,
+					what ships, and when a chapter isn't good enough to publish. It is also not a
+					stunt: the stories are meant to be genuinely worth your reading time, and if
+					they aren't, the provenance at least tells you exactly who to blame.
+				</p>
+				<p>
+					Questions about how this all started? <a href="/about">The founder story is
+					here.</a>
+				</p>
+			</section>
+		</main>
+		<Footer />
+	</body>
+</html>
+
+<style>
+	.page {
+		max-width: 720px;
+		margin: 0 auto;
+		padding: 2em 1em 4em;
+		color: rgb(var(--gray-dark));
+		line-height: 1.6;
+	}
+	.lede {
+		font-size: 1.15em;
+		color: rgb(var(--gray-dark));
+	}
+	section {
+		margin-bottom: 1.5em;
+	}
+	h2 {
+		margin: 1.25em 0 0.5em;
+	}
+	ul {
+		padding-left: 1.25em;
+		margin-bottom: 1em;
+	}
+	li {
+		margin-bottom: 0.5em;
+	}
+	a {
+		color: var(--accent);
+		text-decoration: none;
+	}
+	a:hover {
+		text-decoration: underline;
+	}
+</style>

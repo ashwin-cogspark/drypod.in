@@ -1,0 +1,54 @@
+---
+/**
+ * Stub vote island — renders a neutral, disabled placeholder so novel and
+ * reader pages work today. Phase 4 replaces the internals (Turnstile-gated
+ * voting + dedup); keep the `Props` interface stable: `id` is the vote
+ * subject, e.g. `novel:test-serial` or `chapter:test-serial:001`.
+ */
+interface Props {
+	id: string;
+}
+
+const { id } = Astro.props;
+---
+
+<aside class="vote-island" data-vote-island={id} aria-label="Reader votes">
+	<span class="count" aria-hidden="true">&mdash;</span>
+	<button type="button" class="vote-button" disabled>Vote</button>
+	<p class="note">Voting opens soon.</p>
+</aside>
+
+<style>
+	.vote-island {
+		display: flex;
+		align-items: center;
+		gap: 0.75em;
+		padding: 0.75em 1em;
+		border: 1px dashed rgb(var(--gray-light));
+		border-radius: 8px;
+		color: rgb(var(--gray));
+		background: var(--surface);
+	}
+	.count {
+		font-size: 1.2em;
+		font-weight: 700;
+		color: rgb(var(--gray-dark));
+		min-width: 2ch;
+		text-align: center;
+	}
+	.vote-button {
+		font-size: 0.9em;
+		font-weight: 700;
+		padding: 0.4em 1.2em;
+		border-radius: 999px;
+		border: 1px solid rgb(var(--gray-light));
+		background: transparent;
+		color: rgb(var(--gray));
+		cursor: not-allowed;
+	}
+	.note {
+		margin: 0;
+		font-size: 0.8em;
+		color: rgb(var(--gray));
+	}
+</style>

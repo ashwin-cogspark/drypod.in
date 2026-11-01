@@ -1,0 +1,46 @@
+---
+import { Image } from 'astro:assets';
+import { resolveCover } from '../lib/covers';
+
+interface Props {
+	/** Novel slug — the cover file stem convention is `src/assets/covers/<slug>.(avif|webp|...)`. */
+	slug: string;
+	title: string;
+	/** Optional `cover` value from the novel's YAML (a stem or path); falls back to `slug`. */
+	cover?: string;
+	alt?: string;
+	width?: number;
+	class?: string;
+}
+
+const { slug, title, cover, alt = `Cover of ${title}`, width = 400, class: className } = Astro.props;
+const resolved = resolveCover(cover, slug);
+const height = Math.round((width * 3) / 2);
+---
+
+{
+	resolved ? (
+		<Image class={className} src={resolved} alt={alt} width={width} height={height} />
+	) : (
+		<div class:list={['cover-placeholder', className]} role="img" aria-label={alt}>
+			<span>{title}</span>
+		</div>
+	)
+}
+
+<style>
+	.cover-placeholder {
+		aspect-ratio: 2 / 3;
+		display: flex;
+		align-items: flex-end;
+		padding: 0.75em;
+		border-radius: 8px;
+		background: linear-gradient(160deg, var(--accent-dark), rgb(var(--black)));
+		color: #fff;
+	}
+	.cover-placeholder span {
+		font-size: 0.85em;
+		font-weight: 700;
+		line-height: 1.35;
+	}
+</style>

@@ -1,0 +1,138 @@
+---
+import { getCollection } from 'astro:content';
+import BaseHead from '../../components/BaseHead.astro';
+import Cover from '../../components/Cover.astro';
+import Footer from '../../components/Footer.astro';
+import Header from '../../components/Header.astro';
+import StatusPill from '../../components/StatusPill.astro';
+import { SITE_TITLE } from '../../consts';
+import { allTags, getNovelChapters, novelsByTag } from '../../lib/library';
+
+export async function getStaticPaths() {
+	const novels = await getCollection('novels');
+	const tags = [...allTags(novels).keys()];
+	return tags.map((tag) => ({ params: { tag } }));
+}
+
+const { tag } = Astro.params;
+const novels = await novelsByTag(tag);
+const chaptersPerNovel = await Promise.all(
+	novels.map(async (novel) => ({
+		novel,
+		chapterCount: (await getNovelChapters(novel.data.slug)).length,
+	})),
+);
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead
+			title={`#${tag} · ${SITE_TITLE}`}
+			description={`Serialized fiction tagged #${tag} on Drypod.`}
+		/>
+	</head>
+	<body>
+		<Header />
+		<main class="tag">
+			<h1>#{tag}</h1>
+			<p class="lede">
+				{novels.length} serial{novels.length === 1 ? '' : 's'} · <a href="/tags/">all tags</a>
+			</p>
+			<ul class="novel-grid">
+				{
+					chaptersPerNovel.map(({ novel, chapterCount }) => (
+						<li>
+							<a class="card" href={`/novels/${novel.data.slug}/`}>
+								<Cover
+									slug={novel.data.slug}
+									title={novel.data.title}
+									cover={novel.data.cover}
+									width={200}
+								/>
+								<div class="card-body">
+									<div class="card-title-line">
+										<span class="card-title">{novel.data.title}</span>
+										<StatusPill status={novel.data.status} />
+									</div>
+									<p class="card-meta">
+										{chapterCount} chapters · by {novel.data.author}
+									</p>
+									<p class="card-synopsis">{novel.data.synopsis}</p>
+								</div>
+							</a>
+						</li>
+					))
+				}
+			</ul>
+		</main>
+		<Footer />
+	</body>
+</html>
+
+<style>
+	.tag {
+		width: 960px;
+	}
+	h1 {
+		margin-bottom: 0.25em;
+	}
+	.lede {
+		margin-top: 0;
+		color: rgb(var(--gray));
+	}
+	.novel-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 1.5rem 2rem;
+		list-style: none;
+		margin: 1.5em 0 0;
+		padding: 0;
+	}
+	.card {
+		display: flex;
+		gap: 1em;
+		align-items: flex-start;
+		text-decoration: none;
+	}
+	.card :global(img),
+	.card :global(.cover-placeholder) {
+		flex: 0 0 96px;
+	}
+	.card-body {
+		min-width: 0;
+	}
+	.card-title-line {
+		display: flex;
+		align-items: center;
+		gap: 0.5em;
+		flex-wrap: wrap;
+	}
+	.card-title {
+		color: rgb(var(--black));
+		font-weight: 700;
+	}
+	.card:hover .card-title {
+		color: var(--accent);
+	}
+	.card-meta {
+		margin: 0.25em 0 0.5em;
+		font-size: 0.8em;
+		color: rgb(var(--gray));
+	}
+	.card-synopsis {
+		margin: 0;
+		font-size: 0.85em;
+		line-height: 1.5;
+		color: rgb(var(--gray-dark));
+		display: -webkit-box;
+		-webkit-line-clamp: 3;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+	}
+	@media (max-width: 720px) {
+		.novel-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>

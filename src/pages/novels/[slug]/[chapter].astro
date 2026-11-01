@@ -1,0 +1,366 @@
+---
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import BaseHead from '../../../components/BaseHead.astro';
+import Footer from '../../../components/Footer.astro';
+import FormattedDate from '../../../components/FormattedDate.astro';
+import Header from '../../../components/Header.astro';
+import VoteIsland from '../../../components/VoteIsland.astro';
+import { SITE_TITLE } from '../../../consts';
+import { resolveCover } from '../../../lib/covers';
+import { chapterHref } from '../../../lib/library';
+
+export async function getStaticPaths() {
+	const novels = await getCollection('novels');
+	const chapters = await getCollection('chapters');
+	const paths = [];
+	for (const novel of novels) {
+		const own = chapters
+			.filter((chapter) => chapter.data.novel === novel.data.slug)
+			.sort((a, b) => a.data.number - b.data.number);
+		own.forEach((chapter, index) => {
+			paths.push({
+				params: {
+					slug: novel.data.slug,
+					chapter: String(chapter.data.number).padStart(3, '0'),
+				},
+				props: {
+					novel,
+					chapter,
+					prev: own[index - 1] ?? null,
+					next: own[index + 1] ?? null,
+				},
+			});
+		});
+	}
+	return paths;
+}
+
+interface Props {
+	novel: CollectionEntry<'novels'>;
+	chapter: CollectionEntry<'chapters'>;
+	prev: CollectionEntry<'chapters'> | null;
+	next: CollectionEntry<'chapters'> | null;
+}
+
+const { novel, chapter, prev, next } = Astro.props;
+const { Content } = await render(chapter);
+const { title, author, authorModel } = novel.data;
+const { number, title: chapterTitle, wordCount, pubDate, provenance, authorNote } = chapter.data;
+const chapterParam = String(number).padStart(3, '0');
+const cover = resolveCover(novel.data.cover, novel.data.slug);
+const readerUrl = new URL(chapterHref(novel.data.slug, number), Astro.site).toString();
+const minutes = Math.max(1, Math.round(wordCount / 250));
+
+const jsonLd = {
+	'@context': 'https://schema.org',
+	'@type': 'Chapter',
+	name: `Chapter ${number}: ${chapterTitle}`,
+	datePublished: pubDate.toISOString(),
+	wordCount,
+	author: {
+		'@type': 'Person',
+		name: author,
+		description: `Bot-author persona (${authorModel}).`,
+	},
+	isPartOf: {
+		'@type': 'Book',
+		name: title,
+		url: new URL(`/novels/${novel.data.slug}/`, Astro.site).toString(),
+	},
+	url: readerUrl,
+};
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead
+			title={`Ch ${number} · ${chapterTitle} — ${title} · ${SITE_TITLE}`}
+			description={`${novel.data.synopsis.slice(0, 150)}…`}
+			image={cover}
+			type="article"
+			pubDate={pubDate}
+			jsonLd={jsonLd}
+		/>
+		<!-- Apply saved reader comfort settings before first paint -->
+		<script is:inline>
+			(() => {
+				try {
+					const size = localStorage.getItem('readerSize');
+					const width = localStorage.getItem('readerWidth');
+					if (size) document.documentElement.dataset.readerSize = size;
+					if (width) document.documentElement.dataset.readerWidth = width;
+				} catch (e) {
+					/* localStorage unavailable — keep defaults */
+				}
+			})();
+		</script>
+	</head>
+	<body>
+		<Header />
+		<main class="reader">
+			<nav class="crumbs" aria-label="Chapter navigation">
+				<a href={`/novels/${novel.data.slug}/`}>
+					&larr; {novel.data.title}
+				</a>
+				<span class="crumb-meta">
+					<FormattedDate date={pubDate} /> · {minutes} min read
+				</span>
+			</nav>
+
+			<article>
+				<header class="chapter-header">
+					<p class="kicker">Chapter {number}</p>
+					<h1>{chapterTitle}</h1>
+					<p class="byline">
+						by {author} · <a href={`/novels/${novel.data.slug}/`}>{novel.data.title}</a>
+					</p>
+				</header>
+
+				<div class="comfort" role="group" aria-label="Reading comfort">
+					<span class="comfort-label">Text size</span>
+					<button type="button" data-size="s" aria-pressed="false" class="comfort-btn">Sm</button>
+					<button type="button" data-size="m" aria-pressed="true" class="comfort-btn">Md</button>
+					<button type="button" data-size="l" aria-pressed="false" class="comfort-btn">Lg</button>
+					<span class="comfort-sep" aria-hidden="true"></span>
+					<span class="comfort-label">Width</span>
+					<button type="button" data-width="narrow" aria-pressed="false" class="comfort-btn">Narrow</button>
+					<button type="button" data-width="default" aria-pressed="true" class="comfort-btn">Default</button>
+					<button type="button" data-width="wide" aria-pressed="false" class="comfort-btn">Wide</button>
+				</div>
+
+				<div class="prose chapter-body">
+					<Content />
+				</div>
+
+				{authorNote && (
+					<aside class="author-note">
+						<h2>Author's note</h2>
+						<p>{authorNote}</p>
+					</aside>
+				)}
+
+				<VoteIsland id={`chapter:${novel.data.slug}:${chapterParam}`} />
+
+				<footer class="provenance">
+					<h2>Provenance</h2>
+					<p>
+						Written by {provenance.writer} · edited by {provenance.editor} · proof{' '}
+						{provenance.proof} · &#8377;{provenance.costInr.toLocaleString('en-IN')} ·{' '}
+						{provenance.genSeconds}s · {wordCount.toLocaleString('en-IN')} words ·{' '}
+						<a href="/about-botfiction">how chapters are made</a>
+					</p>
+				</footer>
+			</article>
+
+			<nav class="chapter-nav" aria-label="Chapter navigation">
+				{prev ? (
+					<a class="prev" href={chapterHref(novel.data.slug, prev.data.number)}>
+						&larr; Ch {prev.data.number} · {prev.data.title}
+					</a>
+				) : (
+					<span />
+				)}
+				<a class="index" href={`/novels/${novel.data.slug}/`}>Index</a>
+				{next ? (
+					<a class="next" href={chapterHref(novel.data.slug, next.data.number)}>
+						Ch {next.data.number} · {next.data.title} &rarr;
+					</a>
+				) : (
+					<span class="soon">Next chapter {novel.data.schedule}</span>
+				)}
+			</nav>
+		</main>
+		<Footer />
+	</body>
+</html>
+
+<script>
+	const root = document.documentElement;
+	const sizeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-size]'));
+	const widthButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-width]'));
+
+	function refreshPressed() {
+		const currentSize = root.dataset.readerSize ?? 'm';
+		for (const button of sizeButtons) {
+			button.setAttribute('aria-pressed', String(button.dataset.size === currentSize));
+		}
+		const currentWidth = root.dataset.readerWidth ?? 'default';
+		for (const button of widthButtons) {
+			button.setAttribute('aria-pressed', String(button.dataset.width === currentWidth));
+		}
+	}
+
+	for (const button of sizeButtons) {
+		button.addEventListener('click', () => {
+			root.dataset.readerSize = button.dataset.size;
+			try {
+				localStorage.setItem('readerSize', button.dataset.size ?? 'm');
+			} catch (e) {
+				/* no persistence */
+			}
+			refreshPressed();
+		});
+	}
+	for (const button of widthButtons) {
+		button.addEventListener('click', () => {
+			root.dataset.readerWidth = button.dataset.width;
+			try {
+				localStorage.setItem('readerWidth', button.dataset.width ?? 'default');
+			} catch (e) {
+				/* no persistence */
+			}
+			refreshPressed();
+		});
+	}
+
+	refreshPressed();
+</script>
+
+<style>
+	.reader {
+		width: 100%;
+		max-width: calc(var(--reader-measure) + 4em);
+		margin: auto;
+		padding: 2em 1em 4em;
+	}
+	.crumbs {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: 1em;
+		font-size: 0.85em;
+		margin-bottom: 1.5em;
+	}
+	.crumb-meta {
+		color: rgb(var(--gray));
+		white-space: nowrap;
+	}
+	.chapter-header {
+		margin-bottom: 1.5em;
+	}
+	.kicker {
+		margin: 0 0 0.25em;
+		font-size: 0.85em;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--accent);
+	}
+	.chapter-header h1 {
+		font-size: 2.441em;
+	}
+	.byline {
+		margin: 0.25em 0 0;
+		color: rgb(var(--gray));
+	}
+	.comfort {
+		display: flex;
+		align-items: center;
+		gap: 0.4em;
+		flex-wrap: wrap;
+		padding: 0.6em 0.75em;
+		margin-bottom: 2em;
+		border: 1px solid rgb(var(--gray-light));
+		border-radius: 8px;
+		background: var(--surface);
+	}
+	.comfort-label {
+		font-size: 0.7em;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: rgb(var(--gray));
+		margin-right: 0.25em;
+	}
+	.comfort-btn {
+		font-size: 0.8em;
+		padding: 0.3em 0.8em;
+		border: 1px solid rgb(var(--gray-light));
+		border-radius: 999px;
+		background: transparent;
+		color: rgb(var(--gray-dark));
+		cursor: pointer;
+	}
+	.comfort-btn[aria-pressed='true'] {
+		border-color: var(--accent);
+		color: var(--accent);
+		font-weight: 700;
+	}
+	.comfort-sep {
+		flex: 0 0 1px;
+		height: 1.5em;
+		margin: 0 0.5em;
+		background: rgb(var(--gray-light));
+	}
+	.chapter-body {
+		font-family: var(--font-serif);
+		font-size: var(--reader-size);
+		max-width: var(--reader-measure);
+		margin: 0 auto;
+		line-height: 1.7;
+	}
+	.chapter-body :global(p) {
+		margin-bottom: 1.25em;
+	}
+	.author-note {
+		max-width: var(--reader-measure);
+		margin: 2.5em auto 0;
+		padding: 1em 1.25em;
+		border-left: 4px solid var(--accent);
+		background: var(--surface);
+		border-radius: 0 8px 8px 0;
+	}
+	.author-note h2 {
+		margin: 0 0 0.35em;
+		font-size: 1em;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+	}
+	.author-note p {
+		margin: 0;
+		font-size: 0.9em;
+		color: rgb(var(--gray-dark));
+	}
+	.reader :global(.vote-island) {
+		max-width: var(--reader-measure);
+		margin: 2em auto 0;
+	}
+	.provenance {
+		max-width: var(--reader-measure);
+		margin: 2em auto 0;
+		padding-top: 1em;
+		border-top: 1px solid rgb(var(--gray-light));
+	}
+	.provenance h2 {
+		margin: 0 0 0.35em;
+		font-size: 1em;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+	}
+	.provenance p {
+		margin: 0;
+		font-size: 0.8em;
+		color: rgb(var(--gray));
+	}
+	.chapter-nav {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 1em;
+		margin-top: 2.5em;
+		padding-top: 1.25em;
+		border-top: 1px solid rgb(var(--gray-light));
+		font-size: 0.9em;
+	}
+	.chapter-nav .soon {
+		color: rgb(var(--gray));
+		font-style: italic;
+	}
+	@media (max-width: 720px) {
+		.chapter-nav {
+			flex-direction: column;
+			align-items: flex-start;
+		}
+	}
+</style>

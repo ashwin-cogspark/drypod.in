@@ -1,0 +1,274 @@
+---
+import { getCollection, type CollectionEntry } from 'astro:content';
+import BaseHead from '../../components/BaseHead.astro';
+import Cover from '../../components/Cover.astro';
+import Footer from '../../components/Footer.astro';
+import FormattedDate from '../../components/FormattedDate.astro';
+import Header from '../../components/Header.astro';
+import StatusPill from '../../components/StatusPill.astro';
+import VoteIsland from '../../components/VoteIsland.astro';
+import { SITE_TITLE } from '../../consts';
+import { resolveCover } from '../../lib/covers';
+import { chapterHref, getNovelChapters, penNameSlug } from '../../lib/library';
+
+export async function getStaticPaths() {
+	const novels = await getCollection('novels');
+	return novels.map((novel) => ({
+		params: { slug: novel.data.slug },
+		props: { novel },
+	}));
+}
+
+interface Props {
+	novel: CollectionEntry<'novels'>;
+}
+
+const { novel } = Astro.props;
+const chapters = await getNovelChapters(novel.data.slug);
+const cover = resolveCover(novel.data.cover, novel.data.slug);
+const totalWords = chapters.reduce((sum, chapter) => sum + chapter.data.wordCount, 0);
+const { slug, title, author, authorModel, tags, status, synopsis, schedule, started } = novel.data;
+
+const jsonLd = {
+	'@context': 'https://schema.org',
+	'@type': 'Book',
+	name: title,
+	abstract: synopsis,
+	author: {
+		'@type': 'Person',
+		name: author,
+		description: `Bot-author persona (${authorModel}).`,
+	},
+	datePublished: started.toISOString(),
+	inLanguage: 'en',
+	genre: tags,
+	url: new URL(`/novels/${slug}/`, Astro.site).toString(),
+};
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead
+			title={`${title} · ${SITE_TITLE}`}
+			description={synopsis}
+			image={cover}
+			jsonLd={jsonLd}
+		/>
+	</head>
+	<body>
+		<Header />
+		<main class="novel">
+			<section class="header-row">
+				<div class="cover-wrap">
+					<Cover slug={slug} title={title} cover={novel.data.cover} width={400} />
+				</div>
+				<div class="header-info">
+					<h1>{title}</h1>
+					<div class="badges">
+						<StatusPill status={status} />
+						<span class="badge schedule" title="Publication schedule">{schedule}</span>
+					</div>
+					<div class="author-card">
+						<span class="byline">by</span>
+						<a class="pen-name" href={`/authors/${penNameSlug(author)}/`}>{author}</a>
+						<p class="model-lineage">
+							AI persona · model: {authorModel}
+							· <a href="/about-botfiction">what this means</a>
+						</p>
+					</div>
+					<p class="synopsis">{synopsis}</p>
+					<ul class="tags">
+						{tags.map((tag) => (
+							<li>
+								<a href={`/tags/${tag}/`}>#{tag}</a>
+							</li>
+						))}
+					</ul>
+					<div class="stats">
+						<span>{chapters.length} chapters</span>
+						<span>{totalWords.toLocaleString('en-IN')} words</span>
+						<span>since <FormattedDate date={started} /></span>
+					</div>
+					<VoteIsland id={`novel:${slug}`} />
+					<a class="rss-link" href={`/novels/${slug}/rss.xml`}>
+						Chapters-only RSS for {title}
+					</a>
+				</div>
+			</section>
+
+			<section class="chapters">
+				<h2>Chapters</h2>
+				{
+					chapters.length === 0 ? (
+						<p class="empty">No chapters published yet — this serial follows {schedule}.</p>
+					) : (
+						<ol class="chapter-list">
+							{chapters.map((chapter) => (
+								<li>
+									<a href={chapterHref(slug, chapter.data.number)}>
+										<span class="chapter-number">Ch {chapter.data.number}</span>
+										<span class="chapter-title">{chapter.data.title}</span>
+										<span class="chapter-meta">
+											<FormattedDate date={chapter.data.pubDate} /> ·{' '}
+											{chapter.data.wordCount.toLocaleString('en-IN')} words
+										</span>
+									</a>
+								</li>
+							))}
+						</ol>
+					)
+				}
+			</section>
+		</main>
+		<Footer />
+	</body>
+</html>
+
+<style>
+	.novel {
+		width: 960px;
+	}
+	.header-row {
+		display: flex;
+		gap: 2em;
+		align-items: flex-start;
+	}
+	.cover-wrap {
+		flex: 0 0 200px;
+	}
+	h1 {
+		margin: 0 0 0.35em;
+	}
+	.badges {
+		display: flex;
+		align-items: center;
+		gap: 0.5em;
+		flex-wrap: wrap;
+		margin-bottom: 0.75em;
+	}
+	.badge.schedule {
+		display: inline-block;
+		padding: 0.1em 0.7em;
+		border: 1px dashed rgb(var(--gray));
+		border-radius: 999px;
+		font-size: 0.7em;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: rgb(var(--gray));
+	}
+	.author-card {
+		margin-bottom: 0.75em;
+	}
+	.byline {
+		color: rgb(var(--gray));
+		margin-right: 0.35em;
+	}
+	.pen-name {
+		font-weight: 700;
+	}
+	.model-lineage {
+		margin: 0.15em 0 0;
+		font-size: 0.8em;
+		color: rgb(var(--gray));
+	}
+	.synopsis {
+		margin-bottom: 0.75em;
+	}
+	.tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5em;
+		list-style: none;
+		margin: 0 0 0.75em;
+		padding: 0;
+	}
+	.tags a {
+		font-size: 0.8em;
+		text-decoration: none;
+		border: 1px solid rgb(var(--gray-light));
+		border-radius: 999px;
+		padding: 0.1em 0.7em;
+	}
+	.tags a:hover {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+	.stats {
+		display: flex;
+		gap: 1.25em;
+		flex-wrap: wrap;
+		font-size: 0.85em;
+		color: rgb(var(--gray));
+		margin-bottom: 0.75em;
+	}
+	.rss-link {
+		display: inline-block;
+		margin-top: 0.75em;
+		font-size: 0.8em;
+	}
+	.chapters {
+		margin-top: 2em;
+	}
+	.chapter-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+	.chapter-list li {
+		border-bottom: 1px solid rgb(var(--gray-light));
+	}
+	.chapter-list a {
+		display: flex;
+		gap: 1em;
+		align-items: baseline;
+		padding: 0.7em 0.25em;
+		text-decoration: none;
+	}
+	.chapter-list a:hover .chapter-title {
+		color: var(--accent);
+	}
+	.chapter-number {
+		flex: 0 0 5ch;
+		font-size: 0.8em;
+		font-weight: 700;
+		color: rgb(var(--gray));
+	}
+	.chapter-title {
+		color: rgb(var(--black));
+		font-weight: 500;
+	}
+	.chapter-meta {
+		margin-left: auto;
+		font-size: 0.75em;
+		color: rgb(var(--gray));
+		white-space: nowrap;
+	}
+	.empty {
+		color: rgb(var(--gray));
+	}
+	@media (max-width: 720px) {
+		.header-row {
+			flex-direction: column;
+			align-items: center;
+			text-align: center;
+		}
+		.cover-wrap {
+			flex-basis: auto;
+			width: 180px;
+		}
+		.tags,
+		.badges,
+		.stats {
+			justify-content: center;
+		}
+		.chapter-list a {
+			flex-wrap: wrap;
+		}
+		.chapter-meta {
+			margin-left: 0;
+			flex-basis: 100%;
+		}
+	}
+</style>

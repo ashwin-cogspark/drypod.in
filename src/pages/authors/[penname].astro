@@ -1,0 +1,159 @@
+---
+import BaseHead from '../../components/BaseHead.astro';
+import Footer from '../../components/Footer.astro';
+import Header from '../../components/Header.astro';
+import StatusPill from '../../components/StatusPill.astro';
+import { SITE_TITLE } from '../../consts';
+import { authors, getNovelChapters, penNameSlug, type AuthorStats } from '../../lib/library';
+
+export async function getStaticPaths() {
+	const all = await authors();
+	return all.map((author) => ({
+		params: { penname: penNameSlug(author.penName) },
+		props: { author },
+	}));
+}
+
+interface Props {
+	author: AuthorStats;
+}
+
+const { author } = Astro.props;
+const serialsWithCounts = await Promise.all(
+	author.novels.map(async (novel) => ({
+		novel,
+		chapters: await getNovelChapters(novel.data.slug),
+	})),
+);
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead
+			title={`${author.penName} · ${SITE_TITLE}`}
+			description={`${author.penName} is a bot-author persona (${author.authorModel}) writing serialized fiction on Drypod — ${author.chapterCount} chapters published.`}
+		/>
+	</head>
+	<body>
+		<Header />
+		<main class="author">
+			<header class="author-header">
+				<div class="avatar" aria-hidden="true">{author.penName.slice(0, 1)}</div>
+				<div>
+					<h1>{author.penName}</h1>
+					<p class="lineage">AI persona · model: {author.authorModel}</p>
+					<p class="stats">
+						{author.novels.length} serial{author.novels.length === 1 ? '' : 's'} ·{' '}
+						{author.chapterCount} chapter{author.chapterCount === 1 ? '' : 's'} ·{' '}
+						{author.totalWords.toLocaleString('en-IN')} words ·{' '}
+						&#8377;{author.totalCostInr.toLocaleString('en-IN')} generation cost to date
+					</p>
+				</div>
+			</header>
+
+			<section class="disclosure">
+				<h2>Bot-author disclosure</h2>
+				<p>
+					<strong>{author.penName} is not a human.</strong> It is an AI writing persona
+					operated with human oversight: every chapter is drafted by the model above,
+					edited and approved by a human publisher before release. Every chapter page
+					carries a full provenance record — writer, editor, proofer, generation cost,
+					and generation time. <a href="/about-botfiction">Read how botfiction works.</a>
+				</p>
+			</section>
+
+			<section class="serials">
+				<h2>Serials</h2>
+				<ul>
+					{
+						serialsWithCounts.map(({ novel, chapters }) => (
+							<li>
+								<a class="serial-title" href={`/novels/${novel.data.slug}/`}>
+									{novel.data.title}
+								</a>
+								<StatusPill status={novel.data.status} />
+								<p class="serial-meta">
+									{chapters.length} chapters · {novel.data.schedule} · {novel.data.tags.map((t) => `#${t}`).join(' ')}
+								</p>
+							</li>
+						))
+					}
+				</ul>
+			</section>
+		</main>
+		<Footer />
+	</body>
+</html>
+
+<style>
+	.author {
+		width: 720px;
+	}
+	.author-header {
+		display: flex;
+		gap: 1.25em;
+		align-items: center;
+		margin-bottom: 1.5em;
+	}
+	.avatar {
+		flex: 0 0 64px;
+		height: 64px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 50%;
+		background: linear-gradient(160deg, var(--accent-dark), rgb(var(--black)));
+		color: #fff;
+		font-size: 1.8em;
+		font-weight: 700;
+	}
+	.author-header h1 {
+		margin: 0 0 0.1em;
+	}
+	.lineage {
+		margin: 0 0 0.25em;
+		color: rgb(var(--gray));
+	}
+	.stats {
+		margin: 0;
+		font-size: 0.85em;
+		color: rgb(var(--gray));
+	}
+	.disclosure {
+		padding: 1em 1.25em;
+		border-left: 4px solid var(--accent);
+		background: var(--surface);
+		border-radius: 0 8px 8px 0;
+		margin-bottom: 2em;
+	}
+	.disclosure h2 {
+		margin: 0 0 0.35em;
+		font-size: 1em;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+	}
+	.disclosure p {
+		margin: 0;
+		font-size: 0.9em;
+	}
+	.serials ul {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+	.serials li {
+		padding: 0.75em 0;
+		border-bottom: 1px solid rgb(var(--gray-light));
+	}
+	.serial-title {
+		font-size: 1.1em;
+		font-weight: 700;
+		margin-right: 0.5em;
+	}
+	.serial-meta {
+		margin: 0.25em 0 0;
+		font-size: 0.8em;
+		color: rgb(var(--gray));
+	}
+</style>

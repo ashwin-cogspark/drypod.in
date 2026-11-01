@@ -1,0 +1,174 @@
+---
+import type { Page, PaginateFunction } from 'astro';
+import { getCollection } from 'astro:content';
+import BaseHead from '../components/BaseHead.astro';
+import Cover from '../components/Cover.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import StatusPill from '../components/StatusPill.astro';
+import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+import type { Chapter, Novel } from '../lib/library';
+import { chapterHref, getAllChapters, relativeTime } from '../lib/library';
+
+export async function getStaticPaths({ paginate }: { paginate: PaginateFunction }) {
+	const chapters = await getAllChapters();
+	const novels = await getCollection('novels');
+	const novelMap: Record<string, Novel> = Object.fromEntries(novels.map((n) => [n.data.slug, n]));
+	return paginate(chapters, { pageSize: 30, props: { novelMap } });
+}
+
+interface Props {
+	page: Page<Chapter>;
+	novelMap: Record<string, Novel>;
+}
+
+const { page, novelMap } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+	</head>
+	<body>
+		<Header />
+		<main class="latest">
+			<h1>Latest Updates</h1>
+			<p class="lede">
+				New chapters from every serial, newest first. Covers link to the serial page; titles
+				open the chapter.
+			</p>
+			{
+				page.data.length === 0 ? (
+					<p class="empty">
+						No chapters published yet. Learn <a href="/about-botfiction">how serials are made here</a>.
+					</p>
+				) : (
+					<ul class="updates">
+						{page.data.map((chapter) => {
+							const novel = novelMap[chapter.data.novel];
+							if (!novel) return null;
+							return (
+								<li class="update">
+									<a class="cover-link" href={`/novels/${novel.data.slug}/`} aria-label={`${novel.data.title} serial page`}>
+										<Cover
+											slug={novel.data.slug}
+											title={novel.data.title}
+											cover={novel.data.cover}
+											width={96}
+										/>
+									</a>
+									<div class="update-body">
+										<div class="novel-line">
+											<a class="novel-title" href={`/novels/${novel.data.slug}/`}>{novel.data.title}</a>
+											<StatusPill status={novel.data.status} />
+										</div>
+										<a class="chapter-line" href={chapterHref(novel.data.slug, chapter.data.number)}>
+											<span class="chapter-meta">
+												Ch {chapter.data.number} · {relativeTime(chapter.data.pubDate)}
+											</span>
+											<span class="chapter-title">{chapter.data.title}</span>
+										</a>
+									</div>
+								</li>
+							);
+						})}
+					</ul>
+				)
+			}
+			{
+				page.lastPage > 1 && (
+					<nav class="pagination" aria-label="Pages">
+						{page.url.prev ? <a href={page.url.prev}>&larr; Newer</a> : <span />}
+						<span>Page {page.currentPage} of {page.lastPage}</span>
+						{page.url.next ? <a href={page.url.next}>Older &rarr;</a> : <span />}
+					</nav>
+				)
+			}
+		</main>
+		<Footer />
+	</body>
+</html>
+
+<style>
+	.latest {
+		width: 960px;
+	}
+	h1 {
+		margin-bottom: 0.25em;
+	}
+	.lede {
+		margin-top: 0;
+		color: rgb(var(--gray));
+	}
+	.updates {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.75rem 2rem;
+		list-style: none;
+		margin: 1.5em 0 0;
+		padding: 0;
+	}
+	.update {
+		display: flex;
+		gap: 0.75em;
+		align-items: flex-start;
+		padding: 0.6em 0.25em;
+		border-bottom: 1px solid rgb(var(--gray-light));
+	}
+	.cover-link {
+		flex: 0 0 48px;
+	}
+	.update-body {
+		min-width: 0;
+	}
+	.novel-line {
+		display: flex;
+		align-items: center;
+		gap: 0.5em;
+		flex-wrap: wrap;
+	}
+	.novel-title {
+		font-size: 0.85em;
+		color: rgb(var(--gray));
+		text-decoration: none;
+	}
+	.novel-title:hover {
+		color: var(--accent);
+		text-decoration: underline;
+	}
+	.chapter-line {
+		display: block;
+		margin-top: 0.15em;
+		text-decoration: none;
+	}
+	.chapter-line:hover .chapter-title {
+		color: var(--accent);
+	}
+	.chapter-meta {
+		display: block;
+		font-size: 0.75em;
+		color: rgb(var(--gray));
+	}
+	.chapter-title {
+		display: block;
+		color: rgb(var(--black));
+		font-weight: 700;
+		line-height: 1.35;
+	}
+	.pagination {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-top: 2em;
+		color: rgb(var(--gray));
+	}
+	.empty {
+		color: rgb(var(--gray));
+	}
+	@media (max-width: 720px) {
+		.updates {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>

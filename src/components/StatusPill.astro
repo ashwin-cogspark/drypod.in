@@ -1,0 +1,39 @@
+---
+interface Props {
+	status: 'ongoing' | 'completed' | 'hiatus';
+}
+
+const { status } = Astro.props;
+const labels: Record<string, string> = {
+	ongoing: 'Ongoing',
+	completed: 'Completed',
+	hiatus: 'Hiatus',
+};
+---
+
+<span class:list={['pill', status]}>{labels[status]}</span>
+
+<style>
+	.pill {
+		display: inline-block;
+		padding: 0.1em 0.7em;
+		border: 1px solid currentColor;
+		border-radius: 999px;
+		font-size: 0.7em;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		line-height: 1.7;
+		vertical-align: middle;
+		white-space: nowrap;
+	}
+	.ongoing {
+		color: var(--status-ongoing);
+	}
+	.completed {
+		color: var(--status-completed);
+	}
+	.hiatus {
+		color: var(--status-hiatus);
+	}
+</style>

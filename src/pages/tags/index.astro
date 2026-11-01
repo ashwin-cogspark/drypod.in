@@ -1,0 +1,72 @@
+---
+import { getCollection } from 'astro:content';
+import BaseHead from '../../components/BaseHead.astro';
+import Footer from '../../components/Footer.astro';
+import Header from '../../components/Header.astro';
+import { SITE_TITLE } from '../../consts';
+import { allTags } from '../../lib/library';
+
+const novels = await getCollection('novels');
+const tags = allTags(novels);
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead
+			title={`Tags · ${SITE_TITLE}`}
+			description="Browse serialized fiction on Drypod by tag."
+		/>
+	</head>
+	<body>
+		<Header />
+		<main class="tags">
+			<h1>Tags</h1>
+			{
+				tags.size === 0 ? (
+					<p class="empty">No serials yet.</p>
+				) : (
+					<ul class="tag-list">
+						{[...tags.entries()].map(([tag, count]) => (
+							<li>
+								<a href={`/tags/${tag}/`}>
+									#{tag} <span class="count">({count})</span>
+								</a>
+							</li>
+						))}
+					</ul>
+				)
+			}
+		</main>
+		<Footer />
+	</body>
+</html>
+
+<style>
+	.tag-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.6em;
+		list-style: none;
+		margin: 1.5em 0 0;
+		padding: 0;
+	}
+	.tag-list a {
+		display: inline-block;
+		padding: 0.35em 1em;
+		border: 1px solid rgb(var(--gray-light));
+		border-radius: 999px;
+		text-decoration: none;
+	}
+	.tag-list a:hover {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+	.count {
+		color: rgb(var(--gray));
+		font-size: 0.85em;
+	}
+	.empty {
+		color: rgb(var(--gray));
+	}
+</style>
