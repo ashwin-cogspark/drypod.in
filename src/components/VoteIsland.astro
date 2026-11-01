@@ -149,6 +149,8 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? '1x0000000000000000
 			const tsSlot = root.querySelector('[data-vote-turnstile]');
 			const lsKey = 'voted:' + id;
 			let widgetId = null;
+			let latestToken = '';
+			let tokenWaiter = null;
 			let voted = null;
 			let busy = false;
 
@@ -208,6 +210,7 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? '1x0000000000000000
 				setPressed(null);
 				btns.up.disabled = false;
 				btns.down.disabled = false;
+				latestToken = ''; // consumed or invalid — the widget reset mints a fresh one
 				if (widgetId !== null && window.turnstile) {
 					try {
 						window.turnstile.reset(widgetId); // tokens are single-use
@@ -225,6 +228,19 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? '1x0000000000000000
 						widgetId = window.turnstile.render(tsSlot, {
 							sitekey: siteKey,
 							theme: 'auto',
+							callback: (token) => {
+								latestToken = token;
+								if (tokenWaiter) {
+									tokenWaiter(token);
+									tokenWaiter = null;
+								}
+							},
+							'expired-callback': () => {
+								latestToken = '';
+							},
+							'error-callback': () => {
+								latestToken = '';
+							},
 						});
 					} catch {
 						/* widget unavailable; server still gates the vote */
@@ -232,7 +248,7 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? '1x0000000000000000
 				});
 			};
 
-			const onVote = (dir) => {
+			const onVote = async (dir) => {
 				if (voted || busy || btns[dir].disabled) return;
 				busy = true;
 				// Optimistic lock-in: the vote is decided on click.
@@ -241,10 +257,26 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? '1x0000000000000000
 				btns.down.disabled = true;
 				say('Counting your vote\u2026');
 
-				const token =
+				let token =
 					widgetId !== null && window.turnstile
-						? window.turnstile.getResponse(widgetId) || ''
-						: '';
+						? window.turnstile.getResponse(widgetId) || latestToken
+						: latestToken;
+
+				// The managed widget may not have produced a token yet at
+				// click time — wait for it (bounded) instead of sending an
+				// empty token that would 403 against the real secret.
+				if (!token) {
+					say('Waiting for the human check\u2026');
+					token = await new Promise((resolve) => {
+						tokenWaiter = resolve;
+						setTimeout(() => {
+							if (tokenWaiter) {
+								tokenWaiter('');
+								tokenWaiter = null;
+							}
+						}, 10000);
+					});
+				}
 
 				fetch('/api/votes/' + encodeURIComponent(id), {
 					method: 'POST',
