@@ -32,7 +32,9 @@
  * @property {Digest} [digest]                               sha256 digest, injectable
  */
 
-export const VOTE_ID_PATTERN = /^(novel|chapter):[a-z0-9-]+(:\d{3})?$/;
+export const VOTE_ID_PATTERN = /^(novel|chapter):[a-z0-9-]+(:\d{3,})?$/;
+/** Longest id accepted — well under the 512-byte KV key limit. */
+export const MAX_VOTE_ID_LENGTH = 128;
 /** Public Turnstile secret that always passes — treated as dev mode (skip verify). */
 export const DEV_TEST_SECRET = '1x00000000000000000000AA';
 /** Dedup memory: 10 years (plan P4.4). */
@@ -53,7 +55,9 @@ function json(body, status = 200) {
 
 /** @param {string} id @returns {boolean} */
 export function isValidVoteId(id) {
-	return typeof id === 'string' && VOTE_ID_PATTERN.test(id);
+	return (
+		typeof id === 'string' && id.length <= MAX_VOTE_ID_LENGTH && VOTE_ID_PATTERN.test(id)
+	);
 }
 
 /** Default digest via Web Crypto (present in Workers runtime and Node >= 18).
@@ -184,8 +188,15 @@ export async function handleApiRequest(request, deps) {
 
 	const match = /^\/api\/votes\/([^/]+)$/.exec(url.pathname);
 	if (match) {
-		const id = decodeURIComponent(match[1]);
+		let id;
+		try {
+			id = decodeURIComponent(match[1]);
+		} catch {
+			// Malformed percent-encoding (e.g. /api/votes/%FF) — must not 500.
+			return json({ error: 'invalid_id' }, 400);
+		}
 		if (request.method === 'GET') {
+			if (!isValidVoteId(id)) return json({ error: 'invalid_id' }, 400);
 			return json(await readTally(deps.kv, id));
 		}
 		if (request.method === 'POST') {

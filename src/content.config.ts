@@ -17,18 +17,26 @@ const blog = defineCollection({
 		}),
 });
 
+// Slugs and tags become URL path segments (novel pages, tag pages) —
+// lowercase kebab only, so no path ever 404-invisibly.
+const KEBAB_RE = /^[a-z0-9-]+$/;
+
 // Serialized-fiction novels. One YAML file per novel in `src/content/novels/`.
 // `slug` must match the file name (stem) — chapter `novel` references resolve by id.
 const novels = defineCollection({
 	loader: glob({ base: './src/content/novels', pattern: '*.yaml' }),
 	schema: z.object({
-		slug: z.string(),
+		slug: z
+			.string()
+			.regex(KEBAB_RE, 'slug must be lowercase kebab-case (a-z, 0-9, hyphens) and equal the file stem'),
 		title: z.string(),
 		// Pen name of the bot-author persona, e.g. "Kurogane"
 		author: z.string(),
 		// Model lineage of the persona, e.g. "fixture-model (test)"
 		authorModel: z.string(),
-		tags: z.array(z.string()),
+		tags: z.array(
+			z.string().regex(KEBAB_RE, 'tags become URL path segments: lowercase kebab-case (a-z, 0-9, hyphens)')
+		),
 		status: z.enum(['ongoing', 'completed', 'hiatus']),
 		synopsis: z.string(),
 		// Cover file stem under `src/assets/covers/`; optional — a placeholder is rendered when absent

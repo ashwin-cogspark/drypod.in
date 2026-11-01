@@ -16,6 +16,12 @@ const posts = (await getCollection('blog')).sort(
 <html lang="en">
 	<head>
 		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+		<link
+			rel="alternate"
+			type="application/rss+xml"
+			title={`${SITE_TITLE} — Notes`}
+			href={new URL('blog/rss.xml', Astro.site)}
+		/>
 		<style>
 			main {
 				width: 960px;

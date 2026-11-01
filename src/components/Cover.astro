@@ -38,6 +38,16 @@ const height = Math.round((width * 3) / 2);
 		background: linear-gradient(160deg, var(--accent-dark), rgb(var(--black)));
 		color: #fff;
 	}
+	/* Dark mode flips --accent-dark and --black to light values, which would
+	   leave the white title on a ~1.6:1 gradient — keep the dark end dark. */
+	:global(html[data-theme='dark']) .cover-placeholder {
+		background: linear-gradient(160deg, var(--accent), rgb(var(--gray-light)));
+	}
+	@media (prefers-color-scheme: dark) {
+		:global(html:not([data-theme='light'])) .cover-placeholder {
+			background: linear-gradient(160deg, var(--accent), rgb(var(--gray-light)));
+		}
+	}
 	.cover-placeholder span {
 		font-size: 0.85em;
 		font-weight: 700;

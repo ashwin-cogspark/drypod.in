@@ -15,6 +15,7 @@ import {
 	applyVote,
 	BULK_MAX_IDS,
 	DEDUP_TTL_SECONDS,
+	MAX_VOTE_ID_LENGTH,
 } from './votes.js';
 
 /* ---------------------------------------------------------------- helpers */
@@ -76,10 +77,22 @@ test('isValidVoteId rejects malformed ids', () => {
 	assert.equal(isValidVoteId('poem:test-serial'), false); // wrong prefix
 	assert.equal(isValidVoteId('novel:'), false); // empty slug
 	assert.equal(isValidVoteId('chapter:x:1'), false); // chapter number not 3 digits
+	assert.equal(isValidVoteId('chapter:x:12'), false); // chapter number not 3 digits
 	assert.equal(isValidVoteId('novel:Test_Serial'), false); // bad charset
 	assert.equal(isValidVoteId('chapter:x:001:extra'), false); // trailing segment
 	assert.equal(isValidVoteId(''), false);
 	assert.equal(isValidVoteId(null), false);
+});
+
+test('isValidVoteId accepts chapter numbers of 3 or more digits (chapter 1000+)', () => {
+	assert.equal(isValidVoteId('chapter:test-serial:1000'), true);
+	assert.equal(isValidVoteId('chapter:a-b:1234'), true);
+	assert.equal(isValidVoteId('chapter:x:999'), true); // 3 digits still fine
+});
+
+test('isValidVoteId rejects ids longer than the KV-key-safe cap', () => {
+	assert.equal(isValidVoteId(`novel:${'a'.repeat(MAX_VOTE_ID_LENGTH)}`), false);
+	assert.equal(isValidVoteId(`novel:${'a'.repeat(MAX_VOTE_ID_LENGTH - 7)}`), true);
 });
 
 test('parseBulkIds splits, trims, drops empties, dedupes', () => {
@@ -106,6 +119,48 @@ test('GET vote id with no KV entry returns zero counts as no-store JSON', async 
 	assert.deepEqual(await res.json(), { up: 0, down: 0 });
 	assert.equal(res.headers.get('content-type'), 'application/json');
 	assert.equal(res.headers.get('cache-control'), 'no-store');
+});
+
+test('GET with malformed percent-encoding in the id returns 400, not a 500', async () => {
+	const kv = makeKV();
+	const res = await handleApiRequest(req('GET', '/api/votes/%FF'), { kv, ip: IP });
+	assert.equal(res.status, 400);
+	assert.deepEqual(await res.json(), { error: 'invalid_id' });
+	assert.equal(kv.store.size, 0);
+});
+
+test('GET with a malformed id returns 400 invalid_id like POST does', async () => {
+	const kv = makeKV();
+	const res = await handleApiRequest(req('GET', '/api/votes/poem:test-serial'), { kv, ip: IP });
+	assert.equal(res.status, 400);
+	assert.deepEqual(await res.json(), { error: 'invalid_id' });
+	assert.equal(kv.store.size, 0);
+});
+
+test('GET with an oversized id returns 400 without touching KV', async () => {
+	const kv = makeKV();
+	const res = await handleApiRequest(req('GET', `/api/votes/novel:${'a'.repeat(500)}`), {
+		kv,
+		ip: IP,
+	});
+	assert.equal(res.status, 400);
+	assert.deepEqual(await res.json(), { error: 'invalid_id' });
+	assert.equal(kv.store.size, 0);
+});
+
+test('GET and POST work end to end for chapter numbers of 4 digits', async () => {
+	const kv = makeKV();
+	const read = () =>
+		handleApiRequest(req('GET', '/api/votes/chapter:test-serial:1000'), { kv, ip: IP });
+	assert.equal((await read()).status, 200);
+	const res = await handleApiRequest(
+		req('POST', '/api/votes/chapter:test-serial:1000', {
+			body: JSON.stringify({ direction: 'up', turnstileToken: 'tok' }),
+		}),
+		{ kv, ip: IP },
+	);
+	assert.equal(res.status, 200);
+	assert.deepEqual(await res.json(), { up: 1, down: 0 });
 });
 
 /* -------------------------------------------------------------- POST votes */

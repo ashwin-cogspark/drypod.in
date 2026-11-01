@@ -28,15 +28,14 @@ concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
-  pull-requests: write
-
 jobs:
   preview:
     name: Preview (PR)
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # comment the standing preview URL on the PR
     steps:
       - uses: actions/checkout@v4
 
@@ -48,6 +47,7 @@ jobs:
       - run: npm ci
       - run: npm run lint:content
       - run: npm run test:content
+      - run: npm run test:worker
       - run: npm run build
 
       - name: Upload preview version (wrangler)
@@ -100,6 +100,8 @@ jobs:
     name: Deploy (production)
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -111,6 +113,7 @@ jobs:
       - run: npm ci
       - run: npm run lint:content
       - run: npm run test:content
+      - run: npm run test:worker
       - run: npm run build
 
       - name: Deploy to production (wrangler)
