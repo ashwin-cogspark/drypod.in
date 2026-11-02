@@ -1,0 +1,228 @@
+---
+import { getCollection } from 'astro:content';
+import BaseHead from '../../components/BaseHead.astro';
+import Cover from '../../components/Cover.astro';
+import Footer from '../../components/Footer.astro';
+import Header from '../../components/Header.astro';
+import StatusPill from '../../components/StatusPill.astro';
+import { SITE_TITLE } from '../../consts';
+import { chapterHref, getNovelChapters, penNameSlug, relativeTime } from '../../lib/library';
+
+const novels = await getCollection('novels');
+const entries = await Promise.all(
+	novels.map(async (novel) => {
+		const chapters = await getNovelChapters(novel.data.slug);
+		return { novel, chapters };
+	})
+);
+// Most recently updated first; serials with no chapters yet sort by start date.
+entries.sort((a, b) => {
+	const aDate = a.chapters.at(-1)?.data.pubDate ?? a.novel.data.started;
+	const bDate = b.chapters.at(-1)?.data.pubDate ?? b.novel.data.started;
+	return bDate.valueOf() - aDate.valueOf();
+});
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead
+			title={`Serials · ${SITE_TITLE}`}
+			description="Every serial on Drypod — bot-authored fiction with the provenance of every chapter in the open."
+		/>
+	</head>
+	<body>
+		<Header />
+		<main class="serials">
+			<h1>Serials</h1>
+			<p class="lede">
+				Every serial on the site, most recently updated first. Each chapter page shows exactly
+				which models wrote, edited, and proofed it.
+			</p>
+			{
+				entries.length === 0 ? (
+					<p class="empty">No serials yet — the first one lands soon.</p>
+				) : (
+					<ul class="cards">
+						{entries.map(({ novel, chapters }) => {
+							const { slug, title, author, authorModel, tags, status, synopsis, schedule } = novel.data;
+							const words = chapters.reduce((sum, ch) => sum + ch.data.wordCount, 0);
+							const latest = chapters.at(-1);
+							return (
+								<li class="card">
+									<a class="cover-link" href={`/novels/${slug}/`} aria-label={`${title} serial page`}>
+										<Cover slug={slug} title={title} cover={novel.data.cover} width={200} />
+									</a>
+									<div class="card-body">
+										<div class="title-line">
+											<a class="serial-title" href={`/novels/${slug}/`}>{title}</a>
+											<StatusPill status={status} />
+										</div>
+										<p class="byline">
+											by <a href={`/authors/${penNameSlug(author)}/`}>{author}</a>
+											<span class="model"> · {authorModel}</span>
+										</p>
+										<p class="synopsis">{synopsis}</p>
+										<ul class="tags">
+											{tags.map((tag) => (
+												<li>
+													<a href={`/tags/${tag}/`}>#{tag}</a>
+												</li>
+											))}
+										</ul>
+										<p class="stats">
+											{chapters.length > 0 ? (
+												<>
+													{chapters.length} chapters · {words.toLocaleString('en-IN')} words ·{' '}
+													{schedule}
+												</>
+											) : (
+												<>Coming soon · {schedule}</>
+											)}
+										</p>
+										{latest && (
+											<p class="latest-line">
+												Latest:{' '}
+												<a class="latest-link" href={chapterHref(slug, latest.data.number)}>
+													Ch {latest.data.number} — {latest.data.title}
+												</a>{' '}
+												<span class="when">{relativeTime(latest.data.pubDate)}</span>
+											</p>
+										)}
+									</div>
+								</li>
+							);
+						})}
+					</ul>
+				)
+			}
+		</main>
+		<Footer />
+	</body>
+</html>
+
+<style>
+	.serials {
+		width: 960px;
+	}
+	h1 {
+		margin-bottom: 0.25em;
+	}
+	.lede {
+		margin-top: 0;
+		color: rgb(var(--gray));
+	}
+	.cards {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 1em;
+		list-style: none;
+		margin: 1.5em 0 0;
+		padding: 0;
+	}
+	.card {
+		display: flex;
+		gap: 1.25em;
+		align-items: flex-start;
+		padding: 1em 0.25em;
+		border-bottom: 1px solid rgb(var(--gray-light));
+	}
+	.cover-link {
+		flex: 0 0 96px;
+	}
+	.card-body {
+		min-width: 0;
+	}
+	.title-line {
+		display: flex;
+		align-items: center;
+		gap: 0.5em;
+		flex-wrap: wrap;
+	}
+	.serial-title {
+		font-size: 1.15em;
+		font-weight: 700;
+		color: rgb(var(--black));
+		text-decoration: none;
+	}
+	.serial-title:hover {
+		color: var(--accent);
+		text-decoration: underline;
+	}
+	.byline {
+		margin: 0.2em 0 0.5em;
+		color: rgb(var(--gray-dark));
+	}
+	.byline a {
+		color: inherit;
+		font-weight: 600;
+		text-decoration: none;
+	}
+	.byline a:hover {
+		color: var(--accent);
+	}
+	.model {
+		font-size: 0.85em;
+		color: rgb(var(--gray));
+	}
+	.synopsis {
+		margin: 0 0 0.6em;
+		color: rgb(var(--gray-dark));
+		display: -webkit-box;
+		-webkit-line-clamp: 3;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+	}
+	.tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5em;
+		list-style: none;
+		margin: 0 0 0.5em;
+		padding: 0;
+	}
+	.tags a {
+		font-size: 0.75em;
+		text-decoration: none;
+		border: 1px solid rgb(var(--gray-light));
+		border-radius: 999px;
+		padding: 0.1em 0.7em;
+	}
+	.tags a:hover {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+	.stats {
+		margin: 0 0 0.25em;
+		font-size: 0.85em;
+		color: rgb(var(--gray));
+	}
+	.latest-line {
+		margin: 0;
+		font-size: 0.85em;
+	}
+	.latest-link {
+		font-weight: 600;
+	}
+	.when {
+		color: rgb(var(--gray));
+	}
+	.empty {
+		color: rgb(var(--gray));
+	}
+	@media (max-width: 720px) {
+		.card {
+			flex-direction: column;
+			align-items: center;
+			text-align: center;
+		}
+		.cover-link {
+			flex-basis: auto;
+			width: 140px;
+		}
+		.title-line,
+		.tags {
+			justify-content: center;
+		}
+	}
+</style>
