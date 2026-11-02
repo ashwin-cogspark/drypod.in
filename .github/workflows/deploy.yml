@@ -80,7 +80,10 @@ jobs:
         run: |
           set -o pipefail
           npx --yes wrangler@4 versions upload 2>&1 | tee wrangler-output.log
-          url="$(grep -Eo 'https://[a-zA-Z0-9-]+\.drypod-in\.[a-zA-Z0-9-]+\.workers\.dev' wrangler-output.log | head -n 1)"
+          # wrangler 4 prints "Version Preview URL: https://<hash>-<name>.<subdomain>.workers.dev"
+          # (dash-joined). Match any workers.dev URL in the output — it is the
+          # only one `versions upload` emits.
+          url="$(grep -Eo 'https://[a-zA-Z0-9.-]+\.workers\.dev' wrangler-output.log | head -n 1)"
           if [ -z "$url" ]; then
             echo "::error::No preview URL found in wrangler output:"
             cat wrangler-output.log
