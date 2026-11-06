@@ -1,0 +1,17 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title="Leak test" description="Temporary deploy-pipeline test page. Safe to delete." />
+	</head>
+	<body>
+		<Header />
+		<main><p>If this page is reachable on drypod.in, the preview version leaked to production.</p></main>
+		<Footer />
+	</body>
+</html>
