@@ -72,17 +72,21 @@ jobs:
           PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.PUBLIC_TURNSTILE_SITE_KEY || secrets.PUBLIC_TURNSTILE_SITE_KEY }}
         run: npm run build
 
-      - name: Upload preview version (wrangler)
+      - name: Deploy preview to isolated worker (wrangler)
         id: wrangler_preview
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -o pipefail
-          npx --yes wrangler@4 versions upload 2>&1 | tee wrangler-output.log
-          # wrangler 4 prints "Version Preview URL: https://<hash>-<name>.<subdomain>.workers.dev"
-          # (dash-joined). Match any workers.dev URL in the output — it is the
-          # only one `versions upload` emits.
+          # NOT `versions upload`: on Workers without gradual deployments,
+          # versions upload DEPLOYS IMMEDIATELY in non-interactive CI — every
+          # PR preview shipped straight to production (verified twice with
+          # controlled leak tests, 2026-11-06). Instead deploy to a dedicated
+          # preview Worker with its own name: it cannot touch production
+          # traffic regardless of account settings. One shared preview URL,
+          # overwritten by the latest PR — fine at one-PR-at-a-time cadence.
+          npx --yes wrangler@4 deploy --name drypod-in-preview 2>&1 | tee wrangler-output.log
           url="$(grep -Eo 'https://[a-zA-Z0-9.-]+\.workers\.dev' wrangler-output.log | head -n 1)"
           if [ -z "$url" ]; then
             echo "::error::No preview URL found in wrangler output:"
