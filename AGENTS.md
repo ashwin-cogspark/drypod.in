@@ -24,41 +24,15 @@ Consult these guides before working on related tasks:
 
 ## Git Backup Policy
 
-This repository is mirrored to a self-hosted backup server (frodo). After every push to the primary remote, also push to the backup remote to keep the mirror in sync.
+**frodo is gone.** The old self-hosted backup server was decommissioned (Sep 2026). Do not push to `backup`; that remote has been removed.
 
 ### Remotes
 | Name | URL | Role |
 |------|-----|------|
-| `origin` | git@github.com:ashwin-cogspark/drypod.in.git | Primary remote (GitHub / upstream, SSH) |
-| `backup` | frodo:~/git-repos/drypod.in.git | Self-hosted mirror (frodo) |
+| `origin` | git@github.com:ashwin-cogspark/drypod.in.git | Your GitHub repo — the only remote |
 
 ### Push Protocol
-Always push to both remotes after committing:
-
 ```bash
-# Push to primary remote
+# Stage and commit as usual, then:
 git push origin <branch>
-
-# Then push to backup mirror
-git push backup <branch>
 ```
-
-### Convenience Alias
-Already configured in this repo (`.git/config`) so `git pushall` pushes to both:
-
-```bash
-# Usage: git pushall
-```
-
-To (re)create it manually:
-
-```bash
-git config alias.pushall '!git push origin && git push backup'
-```
-
-Or add to your shell profile (`~/.bashrc`):
-
-```bash
-alias gpush='git push origin && git push backup'
-```
-
